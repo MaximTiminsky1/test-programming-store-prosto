@@ -47,10 +47,12 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: development
-      url: ${{ steps.deploy.outputs.url }}
+      url: https://${{ github.event.repository.name }}-dev.vercel.app
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      # Derived from the repository name so the alias cannot drift from the project.
+      DEV_ALIAS: ${{ github.event.repository.name }}-dev.vercel.app
     steps:
       - uses: actions/checkout@v4
 
@@ -72,4 +74,15 @@ jobs:
         run: |
           url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> "$GITHUB_OUTPUT"
-          echo "Dev deployment: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      # Every deployment gets its own generated URL, so without an alias there is no
+      # single address to hand someone. The alias always points at the latest dev build.
+      - name: Point the dev alias at this deployment
+        run: |
+          vercel alias --token=${{ secrets.VERCEL_TOKEN }} \
+            set "${{ steps.deploy.outputs.url }}" "$DEV_ALIAS"
+          {
+            echo "Dev: https://$DEV_ALIAS"
+            echo ""
+            echo "Deployment: ${{ steps.deploy.outputs.url }}"
+          } >> "$GITHUB_STEP_SUMMARY"
