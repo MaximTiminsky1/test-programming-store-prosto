@@ -8,6 +8,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
+  failOnFlakyTests: Boolean(process.env.CI),
   // On CI the GitHub reporter annotates the run, and the HTML report is uploaded
   // as an artifact when the suite fails.
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]],
@@ -15,6 +16,7 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${APP_PORT}`,
     trace: "on-first-retry",
   },
+  expect: { timeout: 15_000 },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   // The tests run against a production build wired to the fixture API, so they
   // check the same code path that ships. The build itself is done by the
