@@ -1,4 +1,11 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+async function submitAndSettle(page: Page) {
+  const submit = page.getByRole("button", { name: "Создать пост" });
+
+  await submit.click();
+  await expect(submit).toBeEnabled();
+}
 
 test.describe("Список постов", () => {
   test("рендерится на сервере и фильтруется через URL", async ({ page }) => {
@@ -43,18 +50,18 @@ test.describe("Создание поста", () => {
   test("валидирует форму на сервере и создаёт пост", async ({ page }) => {
     await page.goto("/posts/new");
 
-    await page.getByRole("button", { name: "Создать пост" }).click();
+    await submitAndSettle(page);
     await expect(page.getByText("Заголовок должен содержать минимум 3 символа")).toBeVisible();
     await expect(page.getByText("Текст поста должен содержать минимум 10 символов")).toBeVisible();
 
     await page.getByLabel("Заголовок").fill("   ");
     await page.getByLabel("Текст поста").fill("Достаточно длинный текст поста.");
-    await page.getByRole("button", { name: "Создать пост" }).click();
+    await submitAndSettle(page);
     await expect(page.getByText("Заголовок должен содержать минимум 3 символа")).toBeVisible();
     await expect(page.getByLabel("Текст поста")).toHaveValue("Достаточно длинный текст поста.");
 
     await page.getByLabel("Заголовок").fill("Пост из E2E-теста");
-    await page.getByRole("button", { name: "Создать пост" }).click();
+    await submitAndSettle(page);
 
     await expect(page.getByRole("status")).toContainText("Пост создан (id: 101)");
     await expect(page.getByLabel("Заголовок")).toHaveValue("");
