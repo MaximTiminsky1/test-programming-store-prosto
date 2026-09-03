@@ -8,8 +8,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  quality:
+    uses: ./.github/workflows/quality.yml
+
   deploy:
     name: Build and deploy to production
+    needs: quality
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -29,13 +33,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-
-      - run: npm ci
-
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
 
       - name: Install Vercel CLI
         run: npm install --global vercel@59
@@ -51,4 +48,4 @@ jobs:
         run: |
           url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> "$GITHUB_OUTPUT"
-          echo "Production deployment: $url" >> "$GITHUB_STEP_SUMMARY"
+          echo "Production: $url" >> "$GITHUB_STEP_SUMMARY"
