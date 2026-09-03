@@ -1,0 +1,56 @@
+name: Deploy dev
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  quality:
+    uses: ./.github/workflows/quality.yml
+
+  deploy:
+    name: Deploy to dev
+    needs: quality
+    runs-on: ubuntu-latest
+    environment:
+      name: development
+      url: https://${{ github.event.repository.name }}-dev.vercel.app
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      DEV_ALIAS: ${{ github.event.repository.name }}-dev.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@59
+
+      - name: Pull environment configuration
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Point the dev alias at this deployment
+        run: |
+          vercel alias --token=${{ secrets.VERCEL_TOKEN }} \
+            set "${{ steps.deploy.outputs.url }}" "$DEV_ALIAS"
+          {
+            echo "Dev: https://$DEV_ALIAS"
+            echo ""
+            echo "Deployment: ${{ steps.deploy.outputs.url }}"
+          } >> "$GITHUB_STEP_SUMMARY"

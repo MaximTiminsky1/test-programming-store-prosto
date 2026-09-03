@@ -1,8 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
 
 concurrency:
@@ -11,78 +9,4 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint, types, unit tests, build, E2E
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - run: npm ci
-
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
-
-      - name: Build and run E2E
-        run: npm run test:e2e
-
-      - if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7
-
-  deploy-dev:
-    name: Deploy to dev
-    needs: quality
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment:
-      name: development
-      url: https://${{ github.event.repository.name }}-dev.vercel.app
-    env:
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      # Derived from the repository name so the alias cannot drift from the project.
-      DEV_ALIAS: ${{ github.event.repository.name }}-dev.vercel.app
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel@59
-
-      - name: Pull environment configuration
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Build
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Deploy
-        id: deploy
-        run: |
-          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
-          echo "url=$url" >> "$GITHUB_OUTPUT"
-
-      # Every deployment gets its own generated URL, so without an alias there is no
-      # single address to hand someone. The alias always points at the latest dev build.
-      - name: Point the dev alias at this deployment
-        run: |
-          vercel alias --token=${{ secrets.VERCEL_TOKEN }} \
-            set "${{ steps.deploy.outputs.url }}" "$DEV_ALIAS"
-          {
-            echo "Dev: https://$DEV_ALIAS"
-            echo ""
-            echo "Deployment: ${{ steps.deploy.outputs.url }}"
-          } >> "$GITHUB_STEP_SUMMARY"
+    uses: ./.github/workflows/quality.yml
