@@ -6,7 +6,7 @@
 **Стек:** Next.js 16 (App Router), React 19, TypeScript strict, Tailwind CSS 4, Zod 4,
 Vitest (unit), Playwright (E2E).
 
-**Демо:** <!-- TODO: прод-URL -->
+**Демо:** https://test-programming-store-prosto.vercel.app/
 
 ## Запуск
 
